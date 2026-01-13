@@ -1,5 +1,5 @@
-from lexer.lexer import TOK_INT, TOK_PLUS, TOK_MINUS, TOK_MUL, TOK_DIV, TOK_LPAREN, TOK_RPAREN, TOK_EOF
-from parser.nodes import NumberNode, BinOpNode
+from lexer.lexer import *
+from parser.nodes import NumberNode, BinOpNode, VarAssignNode, VarAccessNode
 
 # --- PARSER ---
 class Parser:
@@ -14,12 +14,16 @@ class Parser:
             self.current_token = self.tokens[self.token_idx]
         return self.current_token
 
-    def factor(self):
+    def atom(self):
         token = self.current_token
 
-        if token.type == TOK_INT:
+        if token.type in (TOK_INT, TOK_FLOAT):
             self.advance()
             return NumberNode(token)
+
+        if token.type == TOK_IDENTIFIER:
+            self.advance()
+            return VarAccessNode(token)
 
         if token.type == TOK_LPAREN:
             self.advance()
@@ -30,12 +34,27 @@ class Parser:
             else:
                 raise Exception("Expected ')'")
         
-        raise Exception(f"Expected int or '(', found {token}")
+        raise Exception(f"Expected int, identifier or '(', found {token}")
 
     def term(self):
-        return self.bin_op(self.factor, (TOK_MUL, TOK_DIV))
+        return self.bin_op(self.atom, (TOK_MUL, TOK_DIV))
 
     def expr(self):
+        if self.current_token.matches(TOK_KEYWORD, 'mem'):
+            self.advance()
+            if self.current_token.type != TOK_IDENTIFIER:
+                raise Exception("Expected identifier after 'mem'")
+            
+            var_name = self.current_token
+            self.advance()
+
+            if self.current_token.type != TOK_EQ:
+                raise Exception("Expected '='")
+            
+            self.advance()
+            expr = self.expr()
+            return VarAssignNode(var_name, expr)
+
         return self.bin_op(self.term, (TOK_PLUS, TOK_MINUS))
 
     def bin_op(self, func, ops):
@@ -51,3 +70,7 @@ class Parser:
 
     def parse(self):
         return self.expr()
+
+    # Helper to check token match cleaner
+    def matches(self, type_, value):
+        return self.current_token.type == type_ and self.current_token.value == value
