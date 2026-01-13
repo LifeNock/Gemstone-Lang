@@ -44,7 +44,6 @@ class Parser:
         return self.bin_op(self.atom, (TOK_MUL, TOK_DIV))
 
     def expr(self):
-        # 1. Check for Variable Declaration (mem)
         if self.current_token.matches(TOK_KEYWORD, 'mem'):
             self.advance()
             if self.current_token.type != TOK_IDENTIFIER:
@@ -60,13 +59,11 @@ class Parser:
             expr = self.expr()
             return VarAssignNode(var_name, expr)
 
-        # 2. Check for Print Command (emit)
         elif self.current_token.matches(TOK_KEYWORD, 'emit'):
             self.advance()
             expr = self.expr()
             return EmitNode(expr)
 
-        # 3. Standard Math
         return self.bin_op(self.term, (TOK_PLUS, TOK_MINUS))
 
     def bin_op(self, func, ops):
