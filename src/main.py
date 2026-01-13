@@ -1,5 +1,6 @@
 import sys
-from lexer.lexer import Lexer, TOK_EOF
+from lexer.lexer import Lexer
+from parser.parser import Parser
 
 # --- REPL ---
 def main():
@@ -12,15 +13,25 @@ def main():
         if not text or text.lower() == 'exit':
             break
 
+        # 1. Generate Tokens
         lexer = Lexer(text)
-
+        tokens = []
         try:
             token = lexer.get_next_token()
-            while token.type != TOK_EOF:
-                print(token)
+            while token.type != 'EOF':
+                tokens.append(token)
                 token = lexer.get_next_token()
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Lexer Error: {e}")
+            continue
+
+        # 2. Generate AST
+        parser = Parser(tokens)
+        try:
+            ast = parser.parse()
+            print(ast)
+        except Exception as e:
+            print(f"Parser Error: {e}")
 
 if __name__ == '__main__':
     main()
