@@ -1,14 +1,22 @@
-import sys
+import string
 
 # --- TOKENS ---
-TOK_INT       = 'INT'
-TOK_PLUS      = 'PLUS'
-TOK_MINUS     = 'MINUS'
-TOK_MUL       = 'MUL'
-TOK_DIV       = 'DIV'
-TOK_LPAREN    = 'LPAREN'
-TOK_RPAREN    = 'RPAREN'
-TOK_EOF       = 'EOF'
+TOK_INT        = 'INT'
+TOK_FLOAT      = 'FLOAT'
+TOK_PLUS       = 'PLUS'
+TOK_MINUS      = 'MINUS'
+TOK_MUL        = 'MUL'
+TOK_DIV        = 'DIV'
+TOK_LPAREN     = 'LPAREN'
+TOK_RPAREN     = 'RPAREN'
+TOK_IDENTIFIER = 'IDENTIFIER'
+TOK_KEYWORD    = 'KEYWORD'
+TOK_EQ         = 'EQ'
+TOK_EOF        = 'EOF'
+
+KEYWORDS = [
+    'var'
+]
 
 # --- CLASSES ---
 class Token:
@@ -38,12 +46,32 @@ class Lexer:
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
-    def integer(self):
-        result = ''
-        while self.current_char is not None and self.current_char.isdigit():
-            result += self.current_char
+    def make_number(self):
+        num_str = ''
+        dot_count = 0
+
+        while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
+            if self.current_char == '.':
+                if dot_count == 1: break
+                dot_count += 1
+                num_str += '.'
+            else:
+                num_str += self.current_char
             self.advance()
-        return int(result)
+
+        if dot_count == 0:
+            return Token(TOK_INT, int(num_str))
+        else:
+            return Token(TOK_FLOAT, float(num_str))
+
+    def make_identifier(self):
+        id_str = ''
+        while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
+            id_str += self.current_char
+            self.advance()
+
+        token_type = TOK_KEYWORD if id_str in KEYWORDS else TOK_IDENTIFIER
+        return Token(token_type, id_str)
 
     def get_next_token(self):
         while self.current_char is not None:
@@ -53,7 +81,10 @@ class Lexer:
                 continue
 
             if self.current_char.isdigit():
-                return Token(TOK_INT, self.integer())
+                return self.make_number()
+
+            if self.current_char.isalpha():
+                return self.make_identifier()
 
             if self.current_char == '+':
                 self.advance()
@@ -78,6 +109,10 @@ class Lexer:
             if self.current_char == ')':
                 self.advance()
                 return Token(TOK_RPAREN)
+
+            if self.current_char == '=':
+                self.advance()
+                return Token(TOK_EQ)
 
             raise Exception(f'Illegal character: {self.current_char}')
 
