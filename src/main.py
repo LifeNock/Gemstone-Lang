@@ -5,6 +5,13 @@ from interpreter.interpreter import Interpreter
 
 # --- REPL ---
 def main():
+    # MOVE THIS LINE UP (Outside the loop)
+    # This ensures the memory persists between commands
+    interpreter = Interpreter()
+
+    print("Gemstone Compiler v0.1")
+    print("Type 'exit' to quit.")
+
     while True:
         try:
             text = input('Gemstone > ')
@@ -34,11 +41,11 @@ def main():
             print(f"Parser Error: {e}")
             continue
 
-        # 3. Interpreter
-        interpreter = Interpreter()
+        # 3. Interpreter (Now we just use the existing one)
         try:
             result = interpreter.visit(ast)
-            print(result)
+            if result is not None:
+                print(result)
         except Exception as e:
             print(f"Runtime Error: {e}")
 
