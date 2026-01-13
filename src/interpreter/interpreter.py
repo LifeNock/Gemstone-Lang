@@ -1,5 +1,5 @@
 from lexer.lexer import TOK_PLUS, TOK_MINUS, TOK_MUL, TOK_DIV
-from parser.nodes import NumberNode, BinOpNode, VarAssignNode, VarAccessNode
+from parser.nodes import NumberNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode
 
 # --- INTERPRETER ---
 class Interpreter:
@@ -41,4 +41,9 @@ class Interpreter:
         value = self.symbol_table.get(var_name)
         if value is None:
             raise Exception(f"'{var_name}' is not defined")
+        return value
+
+    def visit_EmitNode(self, node):
+        value = self.visit(node.node_to_print)
+        print(value)
         return value
