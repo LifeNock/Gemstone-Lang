@@ -3,6 +3,7 @@ import string
 # --- TOKENS ---
 TOK_INT        = 'INT'
 TOK_FLOAT      = 'FLOAT'
+TOK_STRING     = 'STRING'  # New Token Type
 TOK_PLUS       = 'PLUS'
 TOK_MINUS      = 'MINUS'
 TOK_MUL        = 'MUL'
@@ -68,6 +69,17 @@ class Lexer:
         else:
             return Token(TOK_FLOAT, float(num_str))
 
+    def make_string(self):
+        str_val = ''
+        self.advance() # Skip the opening quote "
+
+        while self.current_char is not None and self.current_char != '"':
+            str_val += self.current_char
+            self.advance()
+        
+        self.advance() # Skip the closing quote "
+        return Token(TOK_STRING, str_val)
+
     def make_identifier(self):
         id_str = ''
         while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
@@ -86,6 +98,9 @@ class Lexer:
 
             if self.current_char.isdigit():
                 return self.make_number()
+
+            if self.current_char == '"':
+                return self.make_string()
 
             if self.current_char.isalpha():
                 return self.make_identifier()
