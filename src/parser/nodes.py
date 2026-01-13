@@ -28,4 +28,11 @@ class VarAssignNode:
         self.value_node = value_node
 
     def __repr__(self):
-        return f'(var {self.var_name_token} = {self.value_node})'
+        return f'(mem {self.var_name_token} = {self.value_node})'
+
+class EmitNode:
+    def __init__(self, node_to_print):
+        self.node_to_print = node_to_print
+
+    def __repr__(self):
+        return f'(emit {self.node_to_print})'
