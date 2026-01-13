@@ -1,5 +1,5 @@
 from lexer.lexer import *
-from parser.nodes import NumberNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode
+from parser.nodes import NumberNode, StringNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode
 
 # --- PARSER ---
 class Parser:
@@ -20,6 +20,10 @@ class Parser:
         if token.type in (TOK_INT, TOK_FLOAT):
             self.advance()
             return NumberNode(token)
+        
+        if token.type == TOK_STRING:
+            self.advance()
+            return StringNode(token)
 
         if token.type == TOK_IDENTIFIER:
             self.advance()
@@ -34,7 +38,7 @@ class Parser:
             else:
                 raise Exception("Expected ')'")
         
-        raise Exception(f"Expected int, identifier or '(', found {token}")
+        raise Exception(f"Expected int, float, string, identifier or '(', found {token}")
 
     def term(self):
         return self.bin_op(self.atom, (TOK_MUL, TOK_DIV))
