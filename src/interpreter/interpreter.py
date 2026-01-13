@@ -1,5 +1,5 @@
 from lexer.lexer import TOK_PLUS, TOK_MINUS, TOK_MUL, TOK_DIV
-from parser.nodes import NumberNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode
+from parser.nodes import NumberNode, StringNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode
 
 # --- INTERPRETER ---
 class Interpreter:
@@ -15,6 +15,9 @@ class Interpreter:
         raise Exception(f'No visit_{type(node).__name__} method defined')
 
     def visit_NumberNode(self, node):
+        return node.token.value
+
+    def visit_StringNode(self, node):
         return node.token.value
 
     def visit_BinOpNode(self, node):
@@ -46,4 +49,4 @@ class Interpreter:
     def visit_EmitNode(self, node):
         value = self.visit(node.node_to_print)
         print(value)
-        return value
+        return None
