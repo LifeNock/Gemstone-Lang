@@ -29,6 +29,9 @@ class Token:
             return f'{self.type}:{self.value}'
         return f'{self.type}'
 
+    def matches(self, type_, value):
+        return self.type == type_ and self.value == value
+
 class Lexer:
     def __init__(self, text):
         self.text = text
