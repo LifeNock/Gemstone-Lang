@@ -15,7 +15,7 @@ TOK_EQ         = 'EQ'
 TOK_EOF        = 'EOF'
 
 KEYWORDS = [
-    'var'
+    'mem'
 ]
 
 # --- CLASSES ---
