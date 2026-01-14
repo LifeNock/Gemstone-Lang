@@ -12,6 +12,8 @@ class Parser:
         self.token_idx += 1
         if self.token_idx < len(self.tokens):
             self.current_token = self.tokens[self.token_idx]
+        else:
+            self.current_token = Token(TOK_EOF)
         return self.current_token
 
     def atom(self):
@@ -99,7 +101,6 @@ class Parser:
         return left
 
     def parse(self):
-        # NEW: Parse a list of statements, not just one
         statements = []
         while self.current_token.type != TOK_EOF:
             statements.append(self.expr())
