@@ -1,7 +1,6 @@
 from lexer.lexer import *
 from parser.nodes import *
 
-# --- PARSER ---
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -45,29 +44,95 @@ class Parser:
                 return expr
             raise Exception("Expected ')'")
         
-        raise Exception(f"Expected int, float, string, identifier or '(', found {token}")
+        if token.type == TOK_LBRACKET:
+            return self.list_expr()
+
+        if token.type == TOK_LBRACE:
+            return self.dict_expr()
+        
+        raise Exception(f"Unexpected token: {token}")
+
+    def list_expr(self):
+        self.advance()
+        elements = []
+        if self.current_token.type == TOK_RBRACKET:
+            self.advance()
+        else:
+            elements.append(self.expr())
+            while self.current_token.type == TOK_COMMA:
+                self.advance()
+                elements.append(self.expr())
+            if self.current_token.type != TOK_RBRACKET:
+                raise Exception("Expected ']'")
+            self.advance()
+        return ListNode(elements)
+
+    def dict_expr(self):
+        self.advance()
+        pairs = []
+        if self.current_token.type == TOK_RBRACE:
+            self.advance()
+        else:
+            key = self.expr()
+            if self.current_token.type != TOK_COLON:
+                raise Exception("Expected ':' in dict")
+            self.advance()
+            val = self.expr()
+            pairs.append((key, val))
+            
+            while self.current_token.type == TOK_COMMA:
+                self.advance()
+                key = self.expr()
+                if self.current_token.type != TOK_COLON:
+                    raise Exception("Expected ':' in dict")
+                self.advance()
+                val = self.expr()
+                pairs.append((key, val))
+                
+            if self.current_token.type != TOK_RBRACE:
+                raise Exception("Expected '}'")
+            self.advance()
+        return DictNode(pairs)
 
     def call(self):
-        atom = self.atom()
+        node = self.atom()
         
-        if self.current_token.type == TOK_LPAREN:
-            self.advance()
-            arg_nodes = []
-            
-            if self.current_token.type == TOK_RPAREN:
+        while True:
+            if self.current_token.type == TOK_LPAREN:
                 self.advance()
-            else:
-                arg_nodes.append(self.expr())
-                while self.current_token.type == TOK_COMMA:
+                arg_nodes = []
+                if self.current_token.type == TOK_RPAREN:
                     self.advance()
+                else:
                     arg_nodes.append(self.expr())
-                
-                if self.current_token.type != TOK_RPAREN:
-                    raise Exception("Expected ')'")
+                    while self.current_token.type == TOK_COMMA:
+                        self.advance()
+                        arg_nodes.append(self.expr())
+                    if self.current_token.type != TOK_RPAREN:
+                        raise Exception("Expected ')'")
+                    self.advance()
+                node = FuncCallNode(node, arg_nodes)
+            
+            elif self.current_token.type == TOK_LBRACKET:
                 self.advance()
-            return FuncCallNode(atom, arg_nodes)
+                index = self.expr()
+                if self.current_token.type != TOK_RBRACKET:
+                    raise Exception("Expected ']'")
+                self.advance()
+                node = IndexAccessNode(node, index)
+
+            elif self.current_token.type == TOK_DOT:
+                self.advance()
+                if self.current_token.type != TOK_IDENTIFIER:
+                    raise Exception("Expected member identifier")
+                member = self.current_token
+                self.advance()
+                node = MemberAccessNode(node, member)
+            
+            else:
+                break
         
-        return atom
+        return node
 
     def term(self):
         return self.bin_op(self.call, (TOK_MUL, TOK_DIV))
@@ -80,6 +145,8 @@ class Parser:
             return self.if_expr()
         if self.current_token.matches(TOK_KEYWORD, 'while'):
             return self.while_expr()
+        if self.current_token.matches(TOK_KEYWORD, 'for'):
+            return self.for_expr()
         if self.current_token.matches(TOK_KEYWORD, 'def'):
             return self.func_def()
         if self.current_token.matches(TOK_KEYWORD, 'return'):
@@ -120,74 +187,63 @@ class Parser:
     def if_expr(self):
         self.advance()
         condition = self.comp_expr()
-
-        if not self.check_keyword('then'):
-            raise Exception("Expected 'then'")
+        if not self.check_keyword('then'): raise Exception("Expected 'then'")
         self.advance()
-
         true_block = self.block()
         else_block = None
-
         if self.check_keyword('else'):
             self.advance()
             else_block = self.block()
-
-        if not self.check_keyword('end'):
-             raise Exception("Expected 'end' after if-block")
+        if not self.check_keyword('end'): raise Exception("Expected 'end'")
         self.advance()
-
         return IfNode([(condition, true_block)], else_block)
 
     def while_expr(self):
         self.advance()
         condition = self.comp_expr()
-
-        if not self.check_keyword('do'):
-            raise Exception("Expected 'do'")
+        if not self.check_keyword('do'): raise Exception("Expected 'do'")
         self.advance()
-
         body = self.block()
-
-        if not self.check_keyword('end'):
-            raise Exception("Expected 'end' after while-block")
+        if not self.check_keyword('end'): raise Exception("Expected 'end'")
         self.advance()
-
         return WhileNode(condition, body)
+
+    def for_expr(self):
+        self.advance()
+        if self.current_token.type != TOK_IDENTIFIER: raise Exception("Expected iter var")
+        var_name = self.current_token
+        self.advance()
+        if not self.check_keyword('in'): raise Exception("Expected 'in'")
+        self.advance()
+        iterator = self.expr()
+        if not self.check_keyword('do'): raise Exception("Expected 'do'")
+        self.advance()
+        body = self.block()
+        if not self.check_keyword('end'): raise Exception("Expected 'end'")
+        self.advance()
+        return ForNode(var_name, iterator, body)
 
     def func_def(self):
         self.advance()
-
-        if self.current_token.type != TOK_IDENTIFIER:
-            raise Exception("Expected function name")
-        
+        if self.current_token.type != TOK_IDENTIFIER: raise Exception("Expected function name")
         var_name_token = self.current_token
         self.advance()
-
-        if self.current_token.type != TOK_LPAREN:
-             raise Exception("Expected '('")
+        if self.current_token.type != TOK_LPAREN: raise Exception("Expected '('")
         self.advance()
-
         arg_tokens = []
         if self.current_token.type == TOK_IDENTIFIER:
             arg_tokens.append(self.current_token)
             self.advance()
             while self.current_token.type == TOK_COMMA:
                 self.advance()
-                if self.current_token.type != TOK_IDENTIFIER:
-                    raise Exception("Expected argument name")
+                if self.current_token.type != TOK_IDENTIFIER: raise Exception("Expected argument name")
                 arg_tokens.append(self.current_token)
                 self.advance()
-        
-        if self.current_token.type != TOK_RPAREN:
-             raise Exception("Expected ')'")
+        if self.current_token.type != TOK_RPAREN: raise Exception("Expected ')'")
         self.advance()
-
         body = self.block()
-
-        if not self.check_keyword('end'):
-             raise Exception("Expected 'end' after function body")
+        if not self.check_keyword('end'): raise Exception("Expected 'end'")
         self.advance()
-
         return FuncDefNode(var_name_token, arg_tokens, body)
     
     def return_expr(self):
