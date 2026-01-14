@@ -37,10 +37,11 @@ class VarAccessNode:
     def __repr__(self): return f'{self.var_name_token}'
 
 class VarAssignNode:
-    def __init__(self, var_name_token, value_node):
-        self.var_name_token = var_name_token
+    # UPDATED: Now takes a node (target) instead of just a token
+    def __init__(self, target_node, value_node):
+        self.target_node = target_node
         self.value_node = value_node
-    def __repr__(self): return f'(mem {self.var_name_token} = {self.value_node})'
+    def __repr__(self): return f'(mem {self.target_node} = {self.value_node})'
 
 class IndexAccessNode:
     def __init__(self, left_node, index_node):
