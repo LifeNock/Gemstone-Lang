@@ -13,11 +13,19 @@ TOK_RPAREN     = 'RPAREN'
 TOK_IDENTIFIER = 'IDENTIFIER'
 TOK_KEYWORD    = 'KEYWORD'
 TOK_EQ         = 'EQ'
+TOK_EE         = 'EE'  # ==
+TOK_NE         = 'NE'  # !=
+TOK_LT         = 'LT'  # <
+TOK_GT         = 'GT'  # >
+TOK_LTE        = 'LTE' # <=
+TOK_GTE        = 'GTE' # >=
 TOK_EOF        = 'EOF'
 
 KEYWORDS = [
     'mem',
-    'emit'
+    'emit',
+    'if',
+    'then'
 ]
 
 # --- CLASSES ---
@@ -47,9 +55,21 @@ class Lexer:
         else:
             self.current_char = None
 
+    def peek(self):
+        peek_pos = self.pos + 1
+        if peek_pos < len(self.text):
+            return self.text[peek_pos]
+        return None
+
     def skip_whitespace(self):
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
+
+    def skip_comment(self):
+        self.advance()
+        while self.current_char is not None and self.current_char != '\n':
+            self.advance()
+        self.advance()
 
     def make_number(self):
         num_str = ''
@@ -89,11 +109,47 @@ class Lexer:
         token_type = TOK_KEYWORD if id_str in KEYWORDS else TOK_IDENTIFIER
         return Token(token_type, id_str)
 
+    def make_not_equals(self):
+        if self.peek() == '=':
+            self.advance()
+            self.advance()
+            return Token(TOK_NE)
+        self.advance()
+        return None 
+
+    def make_equals(self):
+        token_type = TOK_EQ
+        if self.peek() == '=':
+            self.advance()
+            token_type = TOK_EE
+        self.advance()
+        return Token(token_type)
+
+    def make_less_than(self):
+        token_type = TOK_LT
+        if self.peek() == '=':
+            self.advance()
+            token_type = TOK_LTE
+        self.advance()
+        return Token(token_type)
+
+    def make_greater_than(self):
+        token_type = TOK_GT
+        if self.peek() == '=':
+            self.advance()
+            token_type = TOK_GTE
+        self.advance()
+        return Token(token_type)
+
     def get_next_token(self):
         while self.current_char is not None:
 
             if self.current_char.isspace():
                 self.skip_whitespace()
+                continue
+
+            if self.current_char == '#':
+                self.skip_comment()
                 continue
 
             if self.current_char.isdigit():
@@ -104,6 +160,20 @@ class Lexer:
 
             if self.current_char.isalpha():
                 return self.make_identifier()
+
+            if self.current_char == '!':
+                token = self.make_not_equals()
+                if token: return token
+                raise Exception("Expected '!='")
+
+            if self.current_char == '=':
+                return self.make_equals()
+
+            if self.current_char == '<':
+                return self.make_less_than()
+
+            if self.current_char == '>':
+                return self.make_greater_than()
 
             if self.current_char == '+':
                 self.advance()
@@ -128,10 +198,6 @@ class Lexer:
             if self.current_char == ')':
                 self.advance()
                 return Token(TOK_RPAREN)
-
-            if self.current_char == '=':
-                self.advance()
-                return Token(TOK_EQ)
 
             raise Exception(f'Illegal character: {self.current_char}')
 
