@@ -1,0 +1,22 @@
+# --- Gemstone Logic Test ---
+
+# 1. Set a variable
+mem power = 50
+
+# 2. Print current status
+emit "Checking power level..."
+emit power
+
+# 3. Test logic (Should print nothing)
+if power > 100 then emit "Power is dangerously high!"
+
+# 4. Modify memory
+mem power = power + 60
+emit "Power increased to:"
+emit power
+
+# 5. Test logic again (Should print now)
+if power > 100 then emit "System Overload!"
+
+# 6. Check equality
+if power == 110 then emit "Power is exactly 110"
