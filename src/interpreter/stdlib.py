@@ -1,159 +1,144 @@
 import tkinter as tk
-import os
+import time
 
-# --- GEMUI ENGINE ---
-class GemUIEngine:
+# --- VIRTUAL HARDWARE ---
+class VirtualMachine:
     def __init__(self):
         self.root = None
         self.canvas = None
-        self.headless = False
-        self.width = 800
-        self.height = 600
-        self.title = "Gemstone Application"
+        self.width = 600
+        self.height = 400
+        self.running = False
+        
+        # INPUT REGISTERS (Memory for inputs)
+        self.keys_down = set()
+        self.mouse_x = 0
+        self.mouse_y = 0
+        self.mouse_down = False
+        
+        # SYSTEM POINTERS
+        self.interpreter = None
+        self.update_func = None
 
-    def init_window(self, title, w, h):
-        self.title = title
+    def init_hardware(self, w, h, title):
         self.width = w
         self.height = h
-        try:
-            self.root = tk.Tk()
-            self.root.title(self.title)
-            self.root.geometry(f"{self.width}x{self.height}")
-            self.root.resizable(False, False)
-        except Exception:
-            self.headless = True
-            print(f"!! NO DISPLAY DETECTED !!")
-            print(f"!! Running in HEADLESS MODE (Text Only) !!")
+        self.root = tk.Tk()
+        self.root.title(title)
+        self.root.geometry(f"{self.width}x{self.height}")
+        self.root.resizable(False, False)
+        
+        self.canvas = tk.Canvas(self.root, width=self.width, height=self.height, bg="black", highlightthickness=0)
+        self.canvas.pack()
 
-    def create_surface(self):
-        if self.headless: return
-        if not self.root: return
-        self.canvas = tk.Canvas(self.root, width=self.width, height=self.height, bg="#1e1e1e", highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True)
+        # BIND RAW INPUTS (Mapping hardware events to memory)
+        self.root.bind("<KeyPress>", self._on_key_down)
+        self.root.bind("<KeyRelease>", self._on_key_up)
+        self.root.bind("<Motion>", self._on_mouse_move)
+        self.root.bind("<Button-1>", self._on_mouse_click)
+        self.root.bind("<ButtonRelease-1>", self._on_mouse_release)
+        
+        # Kill switch
+        self.root.protocol("WM_DELETE_WINDOW", self._exit)
 
-    def add_button(self, text, x, y, callback):
-        if self.headless: return
-        if not self.root: return
-        btn = tk.Button(self.root, text=text, command=callback, bg="#333", fg="white", font=("Consolas", 10))
-        btn.place(x=x, y=y)
+    # --- INPUT DRIVERS ---
+    def _on_key_down(self, e): self.keys_down.add(e.keysym.lower())
+    def _on_key_up(self, e): self.keys_down.discard(e.keysym.lower())
+    def _on_mouse_move(self, e): self.mouse_x, self.mouse_y = e.x, e.y
+    def _on_mouse_click(self, e): self.mouse_down = True
+    def _on_mouse_release(self, e): self.mouse_down = False
+    def _exit(self): self.running = False; self.root.destroy()
 
-    def draw_rect(self, x, y, w, h, color, tag=""):
-        if self.headless: return
-        if not self.canvas: return
-        # If a tag is provided, we can move this object later
-        if tag:
-            self.canvas.delete(tag) # Clear old pos
-            self.canvas.create_rectangle(x, y, x+w, y+h, fill=color, outline="", tags=tag)
-        else:
-            self.canvas.create_rectangle(x, y, x+w, y+h, fill=color, outline="")
+    # --- GPU COMMANDS ---
+    def clear_screen(self):
+        self.canvas.delete("all")
 
-    def draw_text(self, text, x, y, size, color, tag=""):
-        if self.headless: return
-        if not self.canvas: return
-        if tag: self.canvas.delete(tag)
-        self.canvas.create_text(x, y, text=text, fill=color, font=("Consolas", size), anchor="nw", tags=tag)
+    def draw_rect(self, x, y, w, h, c):
+        self.canvas.create_rectangle(x, y, x+w, y+h, fill=c, outline="")
 
-    def bind_key(self, key, callback):
-        if self.headless: return
-        if not self.root: return
-        self.root.bind(key, lambda e: callback())
+    def draw_text(self, text, x, y, s, c):
+        self.canvas.create_text(x, y, text=str(text), fill=c, font=("Consolas", s), anchor="nw")
 
-    def schedule(self, ms, callback):
-        if self.headless: return
-        if not self.root: return
-        self.root.after(ms, callback)
+    # --- THE CLOCK (60 FPS) ---
+    def start_loop(self, interpreter, func_node):
+        self.interpreter = interpreter
+        self.update_func = func_node
+        self.running = True
+        self._tick()
+        self.root.mainloop()
 
-    def run(self):
-        if self.headless:
-            print("!! Headless Simulation Running (Ctrl+C to stop) !!")
-            try:
-                while True: input()
-            except: pass
-        elif self.root:
-            self.root.mainloop()
+    def _tick(self):
+        if not self.running: return
+        
+        # 1. Clear VRAM (Canvas)
+        self.clear_screen()
+        
+        # 2. Execute Gemstone Code
+        
+        self.interpreter.call_function(self.update_func, [])
+        
+        # 3. Schedule next frame (approx 60 FPS = 16ms)
+        self.root.after(16, self._tick)
 
-# --- BRIDGE ---
-gem_engine = GemUIEngine()
+# --- GLOBAL INSTANCE ---
+vm = VirtualMachine()
 
-class BuiltinFunction:
-    def __init__(self, name, func):
-        self.name = name
-        self.func = func
-        self.arg_names = ['...args']
+# --- NATIVE FUNCTIONS MAPPED TO VM ---
 
-    def __repr__(self):
-        return f"<native function {self.name}>"
+def sys_init(interpreter, args):
+    w, h = args[0], args[1]
+    title = args[2] if len(args) > 2 else "Gemstone VM"
+    vm.init_hardware(w, h, title)
+    return None
+
+def sys_draw_rect(interpreter, args):
+    vm.draw_rect(args[0], args[1], args[2], args[3], args[4])
+    return None
+
+def sys_draw_text(interpreter, args):
+    vm.draw_text(args[0], args[1], args[2], args[3], args[4])
+    return None
+
+# INPUT POLLING (Asking the hardware "Is this button pressed?")
+def sys_key_pressed(interpreter, args):
+    key = args[0].lower()
+    return 1 if key in vm.keys_down else 0
+
+def sys_mouse_x(interpreter, args): return vm.mouse_x
+def sys_mouse_y(interpreter, args): return vm.mouse_y
+def sys_mouse_down(interpreter, args): return 1 if vm.mouse_down else 0
+
+# SYSTEM START
+def sys_start(interpreter, args):
+    func_node = args[0] # The user passes their 'main' loop function
+    vm.start_loop(interpreter, func_node)
+    return None
 
 def std_print(interpreter, args):
     print(*args)
     return None
 
-def std_input(interpreter, args):
-    if len(args) > 0: return input(args[0])
-    return input()
-
-def sys_start_app(interpreter, args):
-    title = args[0] if len(args) > 0 else "Gem App"
-    w = args[1] if len(args) > 1 else 600
-    h = args[2] if len(args) > 2 else 400
-    gem_engine.init_window(title, w, h)
-    gem_engine.create_surface()
-    return None
-
-def sys_draw_box(interpreter, args):
-    x, y, w, h = args[0], args[1], args[2], args[3]
-    color = args[4] if len(args) > 4 else "white"
-    tag = args[5] if len(args) > 5 else "" 
-    gem_engine.draw_rect(x, y, w, h, color, tag)
-    return None
-
-def sys_draw_text(interpreter, args):
-    text = args[0]
-    x, y = args[1], args[2]
-    size = args[3] if len(args) > 3 else 12
-    color = args[4] if len(args) > 4 else "white"
-    tag = args[5] if len(args) > 5 else ""
-    gem_engine.draw_text(text, x, y, size, color, tag)
-    return None
-
-def sys_ui_button(interpreter, args):
-    text = args[0]
-    x, y = args[1], args[2]
-    func_node = args[3]
-    def wrapper(): interpreter.call_function(func_node, [])
-    gem_engine.add_button(text, x, y, wrapper)
-    return None
-
-def sys_on_key(interpreter, args):
-    key = args[0]
-    func_node = args[1]
-    def wrapper(): interpreter.call_function(func_node, [])
-    gem_engine.bind_key(key, wrapper)
-    return None
-
-def sys_loop(interpreter, args):
-    ms = args[0]
-    func_node = args[1]
-    def wrapper(): interpreter.call_function(func_node, [])
-    gem_engine.schedule(ms, wrapper)
-    return None
-
-def sys_main_loop(interpreter, args):
-    gem_engine.run()
-    return None
-
 # --- LOADER ---
+class BuiltinFunction:
+    def __init__(self, name, func):
+        self.name = name
+        self.func = func
+        self.arg_names = ['...args']
+    def __repr__(self): return f"<native {self.name}>"
+
 def load_stdlib(symbol_table):
     symbol_table.set("print", BuiltinFunction("print", std_print))
-    symbol_table.set("input", BuiltinFunction("input", std_input))
     
-    # GemUI Graphics
-    symbol_table.set("GemApp", BuiltinFunction("GemApp", sys_start_app))
-    symbol_table.set("DrawBox", BuiltinFunction("DrawBox", sys_draw_box))
-    symbol_table.set("DrawText", BuiltinFunction("DrawText", sys_draw_text))
+    # GPU
+    symbol_table.set("InitWindow", BuiltinFunction("InitWindow", sys_init))
+    symbol_table.set("Rect", BuiltinFunction("Rect", sys_draw_rect))
+    symbol_table.set("Text", BuiltinFunction("Text", sys_draw_text))
     
-    # GemUI Interaction
-    symbol_table.set("UIButton", BuiltinFunction("UIButton", sys_ui_button))
-    symbol_table.set("OnKey", BuiltinFunction("OnKey", sys_on_key))
-    symbol_table.set("After", BuiltinFunction("After", sys_loop))
-    symbol_table.set("Run", BuiltinFunction("Run", sys_main_loop))
+    # INPUT
+    symbol_table.set("KeyDown", BuiltinFunction("KeyDown", sys_key_pressed))
+    symbol_table.set("MouseX", BuiltinFunction("MouseX", sys_mouse_x))
+    symbol_table.set("MouseY", BuiltinFunction("MouseY", sys_mouse_y))
+    symbol_table.set("MouseDown", BuiltinFunction("MouseDown", sys_mouse_down))
+    
+    # SYSTEM
+    symbol_table.set("GameLoop", BuiltinFunction("GameLoop", sys_start))
