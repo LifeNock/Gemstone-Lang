@@ -1,45 +1,75 @@
 import tkinter as tk
-import time
+import os
 
 # --- GEMUI ENGINE ---
 class GemUIEngine:
     def __init__(self):
         self.root = None
         self.canvas = None
-        self.elements = []
+        self.headless = False
         self.width = 800
         self.height = 600
         self.title = "Gemstone Application"
 
     def init_window(self, title, w, h):
-        self.root = tk.Tk()
         self.title = title
         self.width = w
         self.height = h
-        self.root.title(self.title)
-        self.root.geometry(f"{self.width}x{self.height}")
-        self.root.resizable(False, False)
+        try:
+            self.root = tk.Tk()
+            self.root.title(self.title)
+            self.root.geometry(f"{self.width}x{self.height}")
+            self.root.resizable(False, False)
+        except Exception:
+            self.headless = True
+            print(f"!! NO DISPLAY DETECTED !!")
+            print(f"!! Running in HEADLESS MODE (Text Only) !!")
+            print(f"!! [WINDOW CREATED] Title: '{title}' ({w}x{h}) !!")
 
     def create_surface(self):
+        if self.headless:
+            print(f"!! [CANVAS CREATED] {self.width}x{self.height} !!")
+            return
+        
         if not self.root: return
         self.canvas = tk.Canvas(self.root, width=self.width, height=self.height, bg="#1e1e1e", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
 
     def add_button(self, text, x, y, callback):
+        if self.headless:
+            print(f"!! [BUTTON ADDED] '{text}' at ({x}, {y}) !!")
+            # In headless mode, we can't click, so we do nothing
+            return
+
         if not self.root: return
         btn = tk.Button(self.root, text=text, command=callback, bg="#333", fg="white", font=("Consolas", 10))
         btn.place(x=x, y=y)
 
     def draw_rect(self, x, y, w, h, color):
+        if self.headless:
+            print(f"!! [DRAW RECT] {color} box at ({x}, {y}) size {w}x{h} !!")
+            return
+
         if not self.canvas: return
         self.canvas.create_rectangle(x, y, x+w, y+h, fill=color, outline="")
 
     def draw_text(self, text, x, y, size, color):
+        if self.headless:
+            print(f"!! [DRAW TEXT] '{text}' at ({x}, {y}) !!")
+            return
+
         if not self.canvas: return
         self.canvas.create_text(x, y, text=text, fill=color, font=("Consolas", size), anchor="nw")
 
     def run(self):
-        if self.root:
+        if self.headless:
+            print("!! [APP RUNNING] Press Ctrl+C to stop simulation !!")
+            try:
+                while True:
+                    input() # Keep alive
+            except KeyboardInterrupt:
+                print("\n!! [APP STOPPED] !!")
+        elif self.root:
             self.root.mainloop()
 
 # --- BRIDGE ---
