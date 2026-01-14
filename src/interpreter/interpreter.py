@@ -1,5 +1,5 @@
-from lexer.lexer import TOK_PLUS, TOK_MINUS, TOK_MUL, TOK_DIV
-from parser.nodes import NumberNode, StringNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode
+from lexer.lexer import *
+from parser.nodes import NumberNode, StringNode, BinOpNode, VarAssignNode, VarAccessNode, EmitNode, IfNode
 
 # --- INTERPRETER ---
 class Interpreter:
@@ -32,6 +32,18 @@ class Interpreter:
             return left * right
         elif node.op_token.type == TOK_DIV:
             return left / right
+        elif node.op_token.type == TOK_EE:
+            return 1 if left == right else 0
+        elif node.op_token.type == TOK_NE:
+            return 1 if left != right else 0
+        elif node.op_token.type == TOK_LT:
+            return 1 if left < right else 0
+        elif node.op_token.type == TOK_GT:
+            return 1 if left > right else 0
+        elif node.op_token.type == TOK_LTE:
+            return 1 if left <= right else 0
+        elif node.op_token.type == TOK_GTE:
+            return 1 if left >= right else 0
 
     def visit_VarAssignNode(self, node):
         var_name = node.var_name_token.value
@@ -49,4 +61,11 @@ class Interpreter:
     def visit_EmitNode(self, node):
         value = self.visit(node.node_to_print)
         print(value)
+        return None
+
+    def visit_IfNode(self, node):
+        for condition, expr in node.cases:
+            condition_value = self.visit(condition)
+            if condition_value:
+                return self.visit(expr)
         return None
