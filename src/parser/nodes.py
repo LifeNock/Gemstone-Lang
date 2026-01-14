@@ -1,4 +1,3 @@
-# --- NODES ---
 class NumberNode:
     def __init__(self, token):
         self.token = token
@@ -8,6 +7,16 @@ class StringNode:
     def __init__(self, token):
         self.token = token
     def __repr__(self): return f'{self.token}'
+
+class ListNode:
+    def __init__(self, element_nodes):
+        self.element_nodes = element_nodes
+    def __repr__(self): return f'[{self.element_nodes}]'
+
+class DictNode:
+    def __init__(self, key_value_pairs):
+        self.key_value_pairs = key_value_pairs
+    def __repr__(self): return f'{{{self.key_value_pairs}}}'
 
 class BinOpNode:
     def __init__(self, left_node, op_token, right_node):
@@ -27,6 +36,18 @@ class VarAssignNode:
         self.value_node = value_node
     def __repr__(self): return f'(mem {self.var_name_token} = {self.value_node})'
 
+class IndexAccessNode:
+    def __init__(self, left_node, index_node):
+        self.left_node = left_node
+        self.index_node = index_node
+    def __repr__(self): return f'{self.left_node}[{self.index_node}]'
+
+class MemberAccessNode:
+    def __init__(self, left_node, member_name_token):
+        self.left_node = left_node
+        self.member_name_token = member_name_token
+    def __repr__(self): return f'{self.left_node}.{self.member_name_token}'
+
 class EmitNode:
     def __init__(self, node_to_print):
         self.node_to_print = node_to_print
@@ -43,6 +64,13 @@ class WhileNode:
         self.condition_node = condition_node
         self.body_nodes = body_nodes
     def __repr__(self): return f'(while {self.condition_node} do {self.body_nodes})'
+
+class ForNode:
+    def __init__(self, var_name_token, iterator_node, body_nodes):
+        self.var_name_token = var_name_token
+        self.iterator_node = iterator_node
+        self.body_nodes = body_nodes
+    def __repr__(self): return f'(for {self.var_name_token} in {self.iterator_node} do {self.body_nodes})'
 
 class FuncDefNode:
     def __init__(self, var_name_token, arg_tokens, body_nodes):
