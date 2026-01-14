@@ -134,8 +134,16 @@ class Parser:
         
         return node
 
+    def factor(self):
+        token = self.current_token
+        if token.type in (TOK_PLUS, TOK_MINUS):
+            self.advance()
+            factor = self.factor()
+            return UnaryOpNode(token, factor)
+        return self.call()
+
     def term(self):
-        return self.bin_op(self.call, (TOK_MUL, TOK_DIV))
+        return self.bin_op(self.factor, (TOK_MUL, TOK_DIV))
 
     def arith_expr(self):
         return self.bin_op(self.term, (TOK_PLUS, TOK_MINUS))
