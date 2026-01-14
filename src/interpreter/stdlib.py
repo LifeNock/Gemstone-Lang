@@ -1,7 +1,7 @@
 import tkinter as tk
 import math
 import random
-import time
+import sys
 
 class VirtualMachine:
     def __init__(self):
@@ -36,16 +36,21 @@ class VirtualMachine:
             self.root.bind("<Button-1>", self._on_mouse_click)
             self.root.bind("<ButtonRelease-1>", self._on_mouse_release)
             self.root.protocol("WM_DELETE_WINDOW", self._exit)
-        except:
+        except Exception as e:
             self.headless = True
-            print("!! HEADLESS MODE ACTIVATED !!")
+            print(f"!! HEADLESS MODE ACTIVATED (Window failed: {e}) !!")
+            print("Press Ctrl+C to exit.")
 
     def _on_key_down(self, e): self.keys_down.add(e.keysym.lower())
     def _on_key_up(self, e): self.keys_down.discard(e.keysym.lower())
     def _on_mouse_move(self, e): self.mouse_x, self.mouse_y = e.x, e.y
     def _on_mouse_click(self, e): self.mouse_down = True
     def _on_mouse_release(self, e): self.mouse_down = False
-    def _exit(self): self.running = False; self.root.destroy()
+    def _exit(self): 
+        self.running = False
+        try: self.root.destroy()
+        except: pass
+        sys.exit(0)
 
     def load_image(self, path):
         if self.headless: return path
@@ -76,7 +81,11 @@ class VirtualMachine:
         self.update_func = func_node
         self.running = True
         self._tick()
-        if self.root: self.root.mainloop()
+        if self.root: 
+            try:
+                self.root.mainloop()
+            except KeyboardInterrupt:
+                self._exit()
         elif self.headless:
             try:
                 while True: input()
@@ -84,8 +93,15 @@ class VirtualMachine:
 
     def _tick(self):
         if not self.running: return
-        self.clear_screen()
-        self.interpreter.call_function(self.update_func, [])
+        
+        try:
+            self.clear_screen()
+            self.interpreter.call_function(self.update_func, [])
+        except Exception as e:
+            print(f"\nRUNTIME ERROR in GameLoop: {e}")
+            self.running = False # Stop the loop so it doesn't spam errors
+            return
+
         if self.root: self.root.after(16, self._tick)
 
 vm = VirtualMachine()
@@ -98,7 +114,11 @@ def sys_draw_rect(interpreter, args): vm.draw_rect(args[0], args[1], args[2], ar
 def sys_draw_text(interpreter, args): vm.draw_text(args[0], args[1], args[2], args[3], args[4]); return None
 def sys_load_img(interpreter, args): return vm.load_image(args[0])
 def sys_draw_img(interpreter, args): vm.draw_image(args[0], args[1], args[2]); return None
-def sys_key_pressed(interpreter, args): return 1 if args[0].lower() in vm.keys_down else 0
+
+def sys_key_pressed(interpreter, args): 
+    key = str(args[0]).lower()
+    return 1 if key in vm.keys_down else 0
+
 def sys_mouse_x(interpreter, args): return vm.mouse_x
 def sys_mouse_y(interpreter, args): return vm.mouse_y
 def sys_mouse_down(interpreter, args): return 1 if vm.mouse_down else 0
@@ -109,7 +129,7 @@ def std_len(interpreter, args): return len(args[0])
 def std_push(interpreter, args): args[0].append(args[1]); return None
 def std_pop(interpreter, args): return args[0].pop()
 
-def math_random(interpreter, args): return random.randint(args[0], args[1])
+def math_random(interpreter, args): return random.randint(int(args[0]), int(args[1]))
 def math_sin(interpreter, args): return math.sin(args[0])
 def math_cos(interpreter, args): return math.cos(args[0])
 def math_floor(interpreter, args): return math.floor(args[0])
