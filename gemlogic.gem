@@ -1,55 +1,20 @@
-# --- Gemstone Full Capabilities Test ---
-
-# 1. Define a function to calculate Factorial
-#    (Example: 5! = 5 * 4 * 3 * 2 * 1 = 120)
-def factorial(n)
-    mem result = 1
-    mem count = n
-    
-    while count > 0 do
-        mem result = result * count
-        mem count = count - 1
-    end
-    
-    return result
+def on_start()
+    emit "Game Started!"
+    DrawBox(50, 50, 100, 100, "red")
+    DrawText("Player 1", 50, 30, 15, "white")
 end
 
-# 2. Define a function to check if a number is Even or Odd
-def check_even(num)
-    # We don't have modulo (%) yet, so we use a math trick
-    mem half = num / 2
-    mem double_half = half * 2
-    
-    if double_half == num then
-        return 1  # True (Even)
-    else
-        return 0  # False (Odd)
-    end
+def on_exit()
+    emit "Closing..."
+    # Logic to close or clean up could go here
 end
 
-# 3. Main Program Execution
-emit "--- Starting System Check ---"
+GemApp("Gemstone Game Engine", 800, 600)
 
-mem target = 6
-emit "Calculating factorial for:"
-emit target
+DrawBox(0, 0, 800, 600, "#222222")
+DrawText("Welcome to Gemstone", 300, 20, 20, "#00FF00")
 
-# Call the function
-mem fact_val = factorial(target)
+UIButton("Start Game", 350, 250, on_start)
+UIButton("Exit", 350, 300, on_exit)
 
-emit "Result:"
-emit fact_val
-
-# 4. Use logic based on the result
-if fact_val > 500 then
-    emit "Result is large (over 500)"
-else
-    emit "Result is small"
-end
-
-# 5. Check even/odd logic
-emit "Is the target even? (1=Yes, 0=No)"
-mem is_even = check_even(target)
-emit is_even
-
-emit "--- Test Complete ---"
+Run()
