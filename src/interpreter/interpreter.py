@@ -1,5 +1,6 @@
 from lexer.lexer import *
 from parser.nodes import *
+from interpreter.stdlib import BuiltinFunction
 
 # --- INTERPRETER HELPERS ---
 class SymbolTable:
@@ -122,9 +123,18 @@ class Interpreter:
         
         args = [self.visit(arg) for arg in node.arg_nodes]
 
-        if len(args) != len(function.arg_names):
-             raise Exception(f"Function {function.name} expects {len(function.arg_names)} args, got {len(args)}")
+        if isinstance(function, BuiltinFunction):
+            return function.func(self, args)
 
+        if isinstance(function, Function):
+            if len(args) != len(function.arg_names):
+                raise Exception(f"Function {function.name} expects {len(function.arg_names)} args, got {len(args)}")
+            
+            return self.call_function(function, args)
+        
+        raise Exception(f"Not a function: {function}")
+
+    def call_function(self, function, args):
         new_scope = SymbolTable(parent=self.global_symbol_table)
         for i in range(len(args)):
             new_scope.set(function.arg_names[i], args[i])
