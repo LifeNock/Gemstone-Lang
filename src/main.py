@@ -3,13 +3,48 @@ from lexer.lexer import Lexer, TOK_EOF
 from parser.parser import Parser
 from interpreter.interpreter import Interpreter
 
-# --- REPL ---
-def main():
-    # MOVE THIS LINE UP (Outside the loop)
-    # This ensures the memory persists between commands
-    interpreter = Interpreter()
+def run_script(text, interpreter):
+    # 1. Lexer
+    lexer = Lexer(text)
+    tokens = []
+    try:
+        token = lexer.get_next_token()
+        while token.type != TOK_EOF:
+            tokens.append(token)
+            token = lexer.get_next_token()
+    except Exception as e:
+        print(f"Lexer Error: {e}")
+        return
 
-    print("Gemstone Compiler v0.1")
+    # For multi-line file execution, we need to split by line or handle statements
+    # Simple approach: Split by newline and run line by line
+    lines = text.split('\n')
+    for line in lines:
+        if not line.strip(): continue
+        
+        lexer = Lexer(line)
+        tokens = []
+        try:
+            token = lexer.get_next_token()
+            while token.type != TOK_EOF:
+                tokens.append(token)
+                token = lexer.get_next_token()
+        except Exception as e:
+            continue # skip empty lines or weird lex errors
+
+        if not tokens: continue
+
+        parser = Parser(tokens)
+        try:
+            ast = parser.parse()
+            result = interpreter.visit(ast)
+            if result is not None:
+                pass # In file mode, we generally don't print unless emit is called
+        except Exception as e:
+            print(f"Error: {e}")
+
+def run_repl(interpreter):
+    print("Gemstone Compiler v0.2")
     print("Type 'exit' to quit.")
 
     while True:
@@ -21,7 +56,6 @@ def main():
         if not text or text.lower() == 'exit':
             break
 
-        # 1. Lexer
         lexer = Lexer(text)
         tokens = []
         try:
@@ -33,7 +67,6 @@ def main():
             print(f"Lexer Error: {e}")
             continue
 
-        # 2. Parser
         parser = Parser(tokens)
         try:
             ast = parser.parse()
@@ -41,7 +74,6 @@ def main():
             print(f"Parser Error: {e}")
             continue
 
-        # 3. Interpreter (Now we just use the existing one)
         try:
             result = interpreter.visit(ast)
             if result is not None:
@@ -50,4 +82,17 @@ def main():
             print(f"Runtime Error: {e}")
 
 if __name__ == '__main__':
-    main()
+    interpreter = Interpreter()
+    
+    if len(sys.argv) > 1:
+        # Run File Mode
+        filename = sys.argv[1]
+        try:
+            with open(filename, 'r') as f:
+                script = f.read()
+            run_script(script, interpreter)
+        except FileNotFoundError:
+            print(f"Could not find file: {filename}")
+    else:
+        # Run REPL Mode
+        run_repl(interpreter)
