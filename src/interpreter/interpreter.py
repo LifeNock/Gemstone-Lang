@@ -76,10 +76,35 @@ class Interpreter:
         return number
 
     def visit_VarAssignNode(self, node):
-        var_name = node.var_name_token.value
         value = self.visit(node.value_node)
-        self.current_symbol_table.set(var_name, value)
-        return value
+        
+        # 1. Simple Variable Assignment: mem x = 10
+        if isinstance(node.target_node, VarAccessNode):
+            var_name = node.target_node.var_name_token.value
+            self.current_symbol_table.set(var_name, value)
+            return value
+
+        # 2. Member Assignment: mem p.x = 10
+        elif isinstance(node.target_node, MemberAccessNode):
+            # Evaluate the left side object (e.g., 'p')
+            obj = self.visit(node.target_node.left_node)
+            member = node.target_node.member_name_token.value
+            if isinstance(obj, dict):
+                obj[member] = value
+                return value
+            raise Exception(f"Cannot assign to property '{member}' of non-dict")
+
+        # 3. Index Assignment: mem arr[0] = 10
+        elif isinstance(node.target_node, IndexAccessNode):
+            # Evaluate the list
+            lst = self.visit(node.target_node.left_node)
+            idx = self.visit(node.target_node.index_node)
+            if isinstance(lst, list):
+                lst[idx] = value
+                return value
+            raise Exception(f"Cannot assign to index {idx} of non-list")
+
+        raise Exception(f"Invalid assignment target: {node.target_node}")
 
     def visit_VarAccessNode(self, node):
         var_name = node.var_name_token.value
@@ -134,6 +159,8 @@ class Interpreter:
         if not isinstance(iterator, list) and not isinstance(iterator, str):
             raise Exception(f"Cannot iterate over {iterator}")
             
+        # Create a new scope for the loop? 
+        # For simplicity, we use current scope, but careful not to leak too much if not desired.
         for item in iterator:
             self.current_symbol_table.set(var_name, item)
             for stmt in node.body_nodes:
