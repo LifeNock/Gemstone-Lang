@@ -1,6 +1,5 @@
 import string
 
-# --- CONSTANTS ---
 TOK_INT = 'INT'
 TOK_FLOAT = 'FLOAT'
 TOK_STRING = 'STRING'
@@ -10,7 +9,13 @@ TOK_MUL = 'MUL'
 TOK_DIV = 'DIV'
 TOK_LPAREN = 'LPAREN'
 TOK_RPAREN = 'RPAREN'
+TOK_LBRACKET = 'LBRACKET'
+TOK_RBRACKET = 'RBRACKET'
+TOK_LBRACE = 'LBRACE'
+TOK_RBRACE = 'RBRACE'
 TOK_COMMA = 'COMMA'
+TOK_DOT = 'DOT'
+TOK_COLON = 'COLON'
 TOK_IDENTIFIER = 'IDENTIFIER'
 TOK_KEYWORD = 'KEYWORD'
 TOK_EQ = 'EQ'
@@ -23,16 +28,8 @@ TOK_GTE = 'GTE'
 TOK_EOF = 'EOF'
 
 KEYWORDS = [
-    'mem',
-    'emit',
-    'if',
-    'then',
-    'else',
-    'while',
-    'do',
-    'end',
-    'def',
-    'return'
+    'mem', 'emit', 'if', 'then', 'else', 'while', 'for', 'in', 
+    'do', 'end', 'def', 'return'
 ]
 
 class Token:
@@ -47,7 +44,6 @@ class Token:
     def matches(self, type_, value):
         return self.type == type_ and self.value == value
 
-# --- LEXER ---
 class Lexer:
     def __init__(self, text):
         self.text = text
@@ -157,6 +153,12 @@ class Lexer:
             if self.current_char == ',':
                 self.advance()
                 return Token(TOK_COMMA)
+            if self.current_char == '.':
+                self.advance()
+                return Token(TOK_DOT)
+            if self.current_char == ':':
+                self.advance()
+                return Token(TOK_COLON)
             if self.current_char == '!':
                 token = self.make_not_equals()
                 if token: return token
@@ -185,6 +187,18 @@ class Lexer:
             if self.current_char == ')':
                 self.advance()
                 return Token(TOK_RPAREN)
+            if self.current_char == '[':
+                self.advance()
+                return Token(TOK_LBRACKET)
+            if self.current_char == ']':
+                self.advance()
+                return Token(TOK_RBRACKET)
+            if self.current_char == '{':
+                self.advance()
+                return Token(TOK_LBRACE)
+            if self.current_char == '}':
+                self.advance()
+                return Token(TOK_RBRACE)
 
             raise Exception(f'Illegal character: {self.current_char}')
 
