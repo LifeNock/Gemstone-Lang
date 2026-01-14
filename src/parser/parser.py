@@ -99,4 +99,8 @@ class Parser:
         return left
 
     def parse(self):
-        return self.expr()
+        # NEW: Parse a list of statements, not just one
+        statements = []
+        while self.current_token.type != TOK_EOF:
+            statements.append(self.expr())
+        return statements
