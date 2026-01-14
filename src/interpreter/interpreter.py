@@ -68,6 +68,12 @@ class Interpreter:
         elif node.op_token.type == TOK_GT: return 1 if left > right else 0
         elif node.op_token.type == TOK_LTE: return 1 if left <= right else 0
         elif node.op_token.type == TOK_GTE: return 1 if left >= right else 0
+        
+    def visit_UnaryOpNode(self, node):
+        number = self.visit(node.node)
+        if node.op_token.type == TOK_MINUS:
+            return -number
+        return number
 
     def visit_VarAssignNode(self, node):
         var_name = node.var_name_token.value
