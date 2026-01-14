@@ -13,12 +13,12 @@ TOK_RPAREN     = 'RPAREN'
 TOK_IDENTIFIER = 'IDENTIFIER'
 TOK_KEYWORD    = 'KEYWORD'
 TOK_EQ         = 'EQ'
-TOK_EE         = 'EE'  # ==
-TOK_NE         = 'NE'  # !=
-TOK_LT         = 'LT'  # <
-TOK_GT         = 'GT'  # >
-TOK_LTE        = 'LTE' # <=
-TOK_GTE        = 'GTE' # >=
+TOK_EE         = 'EE'
+TOK_NE         = 'NE'
+TOK_LT         = 'LT'
+TOK_GT         = 'GT'
+TOK_LTE        = 'LTE'
+TOK_GTE        = 'GTE'
 TOK_EOF        = 'EOF'
 
 KEYWORDS = [
