@@ -1,22 +1,55 @@
-# --- Gemstone Logic Test ---
+# --- Gemstone Full Capabilities Test ---
 
-# 1. Set a variable
-mem power = 50
+# 1. Define a function to calculate Factorial
+#    (Example: 5! = 5 * 4 * 3 * 2 * 1 = 120)
+def factorial(n)
+    mem result = 1
+    mem count = n
+    
+    while count > 0 do
+        mem result = result * count
+        mem count = count - 1
+    end
+    
+    return result
+end
 
-# 2. Print current status
-emit "Checking power level..."
-emit power
+# 2. Define a function to check if a number is Even or Odd
+def check_even(num)
+    # We don't have modulo (%) yet, so we use a math trick
+    mem half = num / 2
+    mem double_half = half * 2
+    
+    if double_half == num then
+        return 1  # True (Even)
+    else
+        return 0  # False (Odd)
+    end
+end
 
-# 3. Test logic (Should print nothing)
-if power > 100 then emit "Power is dangerously high!"
+# 3. Main Program Execution
+emit "--- Starting System Check ---"
 
-# 4. Modify memory
-mem power = power + 60
-emit "Power increased to:"
-emit power
+mem target = 6
+emit "Calculating factorial for:"
+emit target
 
-# 5. Test logic again (Should print now)
-if power > 100 then emit "System Overload!"
+# Call the function
+mem fact_val = factorial(target)
 
-# 6. Check equality
-if power == 110 then emit "Power is exactly 110"
+emit "Result:"
+emit fact_val
+
+# 4. Use logic based on the result
+if fact_val > 500 then
+    emit "Result is large (over 500)"
+else
+    emit "Result is small"
+end
+
+# 5. Check even/odd logic
+emit "Is the target even? (1=Yes, 0=No)"
+mem is_even = check_even(target)
+emit is_even
+
+emit "--- Test Complete ---"
