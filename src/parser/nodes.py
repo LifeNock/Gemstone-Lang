@@ -43,3 +43,11 @@ class EmitNode:
 
     def __repr__(self):
         return f'(emit {self.node_to_print})'
+
+class IfNode:
+    def __init__(self, cases, else_case):
+        self.cases = cases
+        self.else_case = else_case
+
+    def __repr__(self):
+        return f'(if {self.cases})'
