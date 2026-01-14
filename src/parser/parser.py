@@ -166,18 +166,32 @@ class Parser:
     def expr(self):
         if self.current_token.matches(TOK_KEYWORD, 'mem'):
             self.advance()
-            if self.current_token.type != TOK_IDENTIFIER:
-                raise Exception("Expected identifier after 'mem'")
             
-            var_name = self.current_token
-            self.advance()
+            # --- UPDATED ASSIGNMENT LOGIC ---
+            # 1. Parse the "Target" (variable, array index, or object property)
+            target = self.atom()
+            
+            # Allow modifiers (.x or [i])
+            while self.current_token.type in (TOK_DOT, TOK_LBRACKET):
+                if self.current_token.type == TOK_LBRACKET:
+                    self.advance()
+                    index = self.expr()
+                    if self.current_token.type != TOK_RBRACKET: raise Exception("Expected ']'")
+                    self.advance()
+                    target = IndexAccessNode(target, index)
+                elif self.current_token.type == TOK_DOT:
+                    self.advance()
+                    if self.current_token.type != TOK_IDENTIFIER: raise Exception("Expected identifier")
+                    member_name = self.current_token
+                    self.advance()
+                    target = MemberAccessNode(target, member_name)
 
             if self.current_token.type != TOK_EQ:
                 raise Exception("Expected '='")
             
             self.advance()
-            expr = self.expr()
-            return VarAssignNode(var_name, expr)
+            value = self.expr()
+            return VarAssignNode(target, value)
 
         elif self.current_token.matches(TOK_KEYWORD, 'emit'):
             self.advance()
