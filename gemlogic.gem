@@ -1,20 +1,48 @@
-def on_start()
-    emit "Game Started!"
-    DrawBox(50, 50, 100, 100, "red")
-    DrawText("Player 1", 50, 30, 15, "white")
+InitWindow(800, 600, "Gemstone Particles")
+
+# List to hold all particle objects
+mem particles = []
+
+def create_particle(x, y)
+    mem p = {
+        x: x,
+        y: y,
+        vx: Random(-5, 5),
+        vy: Random(-5, 5),
+        life: 255,
+        color: "orange"
+    }
+    push(particles, p)
 end
 
-def on_exit()
-    emit "Closing..."
-    # Logic to close or clean up could go here
+def update()
+    if MouseDown() then
+        # Spawn 5 particles per frame when clicking
+        for i in [1,2,3,4,5] do
+            create_particle(MouseX(), MouseY())
+        end
+    end
+
+    mem active_particles = []
+    
+    for p in particles do
+        # Physics
+        mem p.x = p.x + p.vx
+        mem p.y = p.y + p.vy
+        mem p.life = p.life - 5
+        
+        # Draw
+        if p.life > 0 then
+            Rect(p.x, p.y, 10, 10, p.color)
+            push(active_particles, p)
+        end
+    end
+
+    # Replace old list with only alive particles
+    mem particles = active_particles
+    
+    Text("Particles: ", 10, 10, 20, "white")
+    Text(len(particles), 120, 10, 20, "cyan")
 end
 
-GemApp("Gemstone Game Engine", 800, 600)
-
-DrawBox(0, 0, 800, 600, "#222222")
-DrawText("Welcome to Gemstone", 300, 20, 20, "#00FF00")
-
-UIButton("Start Game", 350, 250, on_start)
-UIButton("Exit", 350, 300, on_exit)
-
-Run()
+GameLoop(update)
