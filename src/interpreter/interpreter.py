@@ -1,8 +1,7 @@
 from lexer.lexer import *
 from parser.nodes import *
-from interpreter.stdlib import BuiltinFunction
+from .stdlib import BuiltinFunction
 
-# --- INTERPRETER HELPERS ---
 class SymbolTable:
     def __init__(self, parent=None):
         self.symbols = {}
@@ -25,15 +24,11 @@ class Function:
         self.name = name
         self.body_nodes = body_nodes
         self.arg_names = arg_names
-
-    def __repr__(self):
-        return f"<function {self.name}>"
+    def __repr__(self): return f"<function {self.name}>"
 
 class ReturnValue:
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, value): self.value = value
 
-# --- INTERPRETER ---
 class Interpreter:
     def __init__(self):
         self.global_symbol_table = SymbolTable()
@@ -52,6 +47,12 @@ class Interpreter:
 
     def visit_StringNode(self, node):
         return node.token.value
+
+    def visit_ListNode(self, node):
+        return [self.visit(e) for e in node.element_nodes]
+
+    def visit_DictNode(self, node):
+        return {self.visit(k): self.visit(v) for k, v in node.key_value_pairs}
 
     def visit_BinOpNode(self, node):
         left = self.visit(node.left_node)
@@ -77,9 +78,21 @@ class Interpreter:
     def visit_VarAccessNode(self, node):
         var_name = node.var_name_token.value
         value = self.current_symbol_table.get(var_name)
-        if value is None:
-            raise Exception(f"'{var_name}' is not defined")
+        if value is None: raise Exception(f"'{var_name}' is not defined")
         return value
+
+    def visit_IndexAccessNode(self, node):
+        left = self.visit(node.left_node)
+        index = self.visit(node.index_node)
+        try: return left[index]
+        except: raise Exception(f"Cannot access index {index} of {left}")
+
+    def visit_MemberAccessNode(self, node):
+        left = self.visit(node.left_node)
+        member = node.member_name_token.value
+        if isinstance(left, dict) and member in left:
+            return left[member]
+        raise Exception(f"Cannot access property '{member}' of {left}")
 
     def visit_EmitNode(self, node):
         value = self.visit(node.node_to_print)
@@ -88,13 +101,11 @@ class Interpreter:
 
     def visit_IfNode(self, node):
         for condition, statement_list in node.cases:
-            condition_value = self.visit(condition)
-            if condition_value:
+            if self.visit(condition):
                 for stmt in statement_list:
                     res = self.visit(stmt)
                     if isinstance(res, ReturnValue): return res
                 return None
-        
         if node.else_case:
             for stmt in node.else_case:
                 res = self.visit(stmt)
@@ -105,7 +116,20 @@ class Interpreter:
         while True:
             condition = self.visit(node.condition_node)
             if not condition: break
+            for stmt in node.body_nodes:
+                res = self.visit(stmt)
+                if isinstance(res, ReturnValue): return res
+        return None
+
+    def visit_ForNode(self, node):
+        iterator = self.visit(node.iterator_node)
+        var_name = node.var_name_token.value
+        
+        if not isinstance(iterator, list) and not isinstance(iterator, str):
+            raise Exception(f"Cannot iterate over {iterator}")
             
+        for item in iterator:
+            self.current_symbol_table.set(var_name, item)
             for stmt in node.body_nodes:
                 res = self.visit(stmt)
                 if isinstance(res, ReturnValue): return res
@@ -120,7 +144,6 @@ class Interpreter:
 
     def visit_FuncCallNode(self, node):
         function = self.visit(node.node_to_call)
-        
         args = [self.visit(arg) for arg in node.arg_nodes]
 
         if isinstance(function, BuiltinFunction):
@@ -128,8 +151,7 @@ class Interpreter:
 
         if isinstance(function, Function):
             if len(args) != len(function.arg_names):
-                raise Exception(f"Function {function.name} expects {len(function.arg_names)} args, got {len(args)}")
-            
+                raise Exception(f"Function {function.name} expects {len(function.arg_names)} args")
             return self.call_function(function, args)
         
         raise Exception(f"Not a function: {function}")
@@ -138,10 +160,8 @@ class Interpreter:
         new_scope = SymbolTable(parent=self.global_symbol_table)
         for i in range(len(args)):
             new_scope.set(function.arg_names[i], args[i])
-
         previous_scope = self.current_symbol_table
         self.current_symbol_table = new_scope
-        
         result = None
         try:
             for stmt in function.body_nodes:
@@ -151,7 +171,6 @@ class Interpreter:
                     break
         finally:
             self.current_symbol_table = previous_scope
-        
         return result
     
     def visit_ReturnNode(self, node):
